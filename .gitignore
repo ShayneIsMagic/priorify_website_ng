@@ -1,6 +1,7 @@
-# Local secrets (use only if you add a Node/build step or backend in-repo)
+# Local secrets — never commit or push (Git will not include these in commits)
 .env
 .env.*
+*.env
 !.env.example
 
 .DS_Store
