@@ -1,0 +1,60 @@
+<!--
+  Shared site header — copy into each page’s <body> after <body> opens, or merge via a static-site build.
+
+  Before publishing: set aria-current="page" on exactly one nav link (desktop + mobile) that matches
+  the current URL, and remove aria-current from all other links.
+
+  Paths are root-relative (/css/, /assets/, etc.).
+-->
+<header class="site-header" role="banner">
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <div class="site-header__inner">
+    <a class="site-header__logo" href="/">
+      <img class="logo-default" src="/assets/images/logo-blue.svg" width="200" height="28" alt="Priorify AI" />
+      <img class="logo-scrolled" src="/assets/images/logo-yellow.svg" width="200" height="28" alt="" />
+    </a>
+            <nav class="site-nav" aria-label="Primary">
+          <div class="site-nav__group site-nav__group--paths" role="group" aria-label="Choose your path">
+          <a href="/" title="Organization &amp; team engagements">Home</a>
+          <a href="/myprioritypath/" class="site-nav__link--individual" title="Individuals — personal &amp; career goals">MyPriorityPath®</a>
+          </div>
+          <span class="site-nav__sep" aria-hidden="true"></span>
+          <div class="site-nav__group site-nav__group--learn" role="group" aria-label="Methodology and company">
+          <a href="/why-priorify/">Why Priorify</a>
+          <a href="/our-process/">Our Process</a>
+          <a href="/pricing/">Pricing</a>
+          <a href="/research/">Research</a>
+          <a href="/our-team/">Our Team</a>
+          <a href="/faq/">FAQ</a>
+          </div>
+          <a class="btn-nav-cta" href="/contact/">Get Priorified ✦</a>
+        </nav>
+    <button
+      type="button"
+      class="site-header__toggle"
+      aria-expanded="false"
+      aria-controls="site-nav-mobile"
+      aria-label="Open menu"
+    >
+      <span class="site-header__toggle-bar"></span>
+      <span class="site-header__toggle-bar"></span>
+      <span class="site-header__toggle-bar"></span>
+    </button>
+  </div>
+        <div id="site-nav-mobile" class="site-nav-mobile" hidden>
+        <div class="site-nav-mobile__group site-nav-mobile__group--paths" role="group" aria-label="Choose your path">
+        <a href="/">Home</a>
+        <a href="/myprioritypath/" class="site-nav-mobile__link--individual">MyPriorityPath®</a>
+        </div>
+        <div class="site-nav-mobile__sep" aria-hidden="true"></div>
+        <div class="site-nav-mobile__group site-nav-mobile__group--learn" role="group" aria-label="Methodology and company">
+        <a href="/why-priorify/">Why Priorify</a>
+        <a href="/our-process/">Our Process</a>
+        <a href="/pricing/">Pricing</a>
+        <a href="/research/">Research</a>
+        <a href="/our-team/">Our Team</a>
+        <a href="/faq/">FAQ</a>
+        </div>
+        <a class="btn-nav-cta" href="/contact/">Get Priorified ✦</a>
+      </div>
+    </header>

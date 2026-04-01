@@ -1,0 +1,7 @@
+# Local secrets (use only if you add a Node/build step or backend in-repo)
+.env
+.env.*
+!.env.example
+
+.DS_Store
+**/.DS_Store
