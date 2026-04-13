@@ -18,6 +18,7 @@ Multi-page marketing site for **Priorify AI** (PriorityPath®, MyPriorityPath®,
 | `includes/` | `header.html`, `footer.html` partials |
 | `reference/` | Legacy React prototype (`priorify-ai-site.jsx`) — not deployed |
 | `scripts/` | Maintenance: `qa-audit.py`, `patch_nav_groups.py`, `add_nav_titles.py` |
+| `docs/ai-integration.md` | LLM/API payloads, form field names, spam/Turnstile behavior |
 
 ```text
 /
@@ -32,6 +33,7 @@ Multi-page marketing site for **Priorify AI** (PriorityPath®, MyPriorityPath®,
 ├── pricing/, research/, why-priorify/
 ├── shan-g/, shandon-m-gubler/
 ├── scripts/
+├── docs/ai-integration.md
 ├── README.md, AGENTS.md
 └── …
 ```
@@ -104,6 +106,8 @@ Create a feature branch: `<initials>/<website-name>`, build on that branch, then
 
 ### Forms — where submissions go (today vs production)
 
+**Full spec (demos, JSON shapes, honeypots, Turnstile, rate-limit keys):** [docs/ai-integration.md](./docs/ai-integration.md).
+
 **Right now**, both forms on `/contact/` use `action="#"` and **JavaScript** (`js/main.js`) calls `preventDefault()` and shows a thank-you message. **Nothing is emailed or POSTed to a server** until you wire an endpoint.
 
 **To receive submissions by email**, typical options:
@@ -118,10 +122,16 @@ Set the form `action` to the provider URL and **remove or adjust** the placehold
 
 ### Spam protection
 
-- **Honeypot** (already in `contact/index.html`): a hidden “Company website” field. If it is filled, `main.js` aborts submit with no message (bots often fill every field). Not bulletproof alone.
-- **Provider**: Formspree / Netlify include basic bot filtering; paid tiers add more.
-- **Stronger**: add **[Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/)** or **Google reCAPTCHA v3** on the server or via the form provider’s integration.
-- **Rate limiting** only works on a real backend.
+Client-side mitigations live in `js/main.js` (not a substitute for server checks):
+
+- **Honeypots** (in `contact/index.html`): hidden fields `company_website` and `hp_business_fax` inside `.contact-form__hp`. If either has text, submit is aborted **silently** (no error shown).
+- **Timing**: submit is rejected until at least ~0.9s has passed since the form initialized, and until ~3.2s **or** the user has interacted with a visible field (stops instant bot POSTs).
+- **Per-browser quota**: at most **12** successful submissions per form per rolling hour (`sessionStorage` keys `priorify_sg_contact` and `priorify_sg_estimate`).
+- **AI demos** (home + MyPriorityPath): at most **24** “Analyze” / “Map My Path” runs per demo per rolling hour per browser (`priorify_ai_demo_org_v1`, `priorify_ai_demo_mp_v1`). When you add a real LLM API, enforce **IP + key rate limits** on the server.
+
+**Cloudflare Turnstile (optional):** set `<meta name="priorify-turnstile-site-key" content="YOUR_SITE_KEY" />` in `contact/index.html`. Widgets mount above each submit button; `main.js` requires a token before showing success. **You must verify** the `cf-turnstile-response` token on your server (or use a provider that does).
+
+**Also use:** Formspree/Netlify bot options, WAF / Bot Fight Mode on your CDN, and **server-side rate limiting** once forms POST to your stack.
 
 ### Navbar (suggestions)
 

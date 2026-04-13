@@ -81,6 +81,147 @@
     return Array.prototype.slice.call((root || document).querySelectorAll(sel));
   }
 
+  /** Client-side anti-spam (honeypots + timing + quotas). Pair with server/Turnstile for production. */
+  var SPAM_GUARD = {
+    MIN_MS_ABSOLUTE: 900,
+    MIN_MS_WITHOUT_INTERACTION: 3200,
+    MAX_SUBMITS_PER_HOUR: 12,
+    HOUR_MS: 3600000,
+    AI_ANALYZE_MAX_PER_HOUR: 24,
+  };
+
+  function honeypotTrip(form) {
+    var inputs = form.querySelectorAll(".contact-form__hp input");
+    for (var i = 0; i < inputs.length; i++) {
+      if (String(inputs[i].value || "").replace(/\s/g, "")) return true;
+    }
+    return false;
+  }
+
+  function initHumanTouchTracking(form) {
+    if (form.getAttribute("data-spam-touch-init")) return;
+    form.setAttribute("data-spam-touch-init", "1");
+    form.setAttribute("data-spam-started", String(Date.now()));
+    function markHuman(e) {
+      if (e.target && e.target.closest && !e.target.closest(".contact-form__hp")) {
+        form.setAttribute("data-spam-human", "1");
+      }
+    }
+    form.addEventListener("input", markHuman, true);
+    form.addEventListener("change", markHuman, true);
+  }
+
+  function checkFormTiming(form) {
+    var started = parseInt(form.getAttribute("data-spam-started") || "0", 10);
+    if (!started) return { ok: false, code: "init" };
+    var elapsed = Date.now() - started;
+    if (elapsed < SPAM_GUARD.MIN_MS_ABSOLUTE) return { ok: false, code: "fast" };
+    if (elapsed < SPAM_GUARD.MIN_MS_WITHOUT_INTERACTION && form.getAttribute("data-spam-human") !== "1") {
+      return { ok: false, code: "interaction" };
+    }
+    return { ok: true };
+  }
+
+  function readSubmitQuota(storageKey) {
+    try {
+      var raw = sessionStorage.getItem(storageKey);
+      var now = Date.now();
+      var list = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(list)) list = [];
+      list = list.filter(function (t) {
+        return now - t < SPAM_GUARD.HOUR_MS;
+      });
+      return { ok: list.length < SPAM_GUARD.MAX_SUBMITS_PER_HOUR, list: list };
+    } catch (err) {
+      return { ok: true, list: [] };
+    }
+  }
+
+  function recordSubmitQuota(storageKey, existingList) {
+    try {
+      var now = Date.now();
+      var list = (existingList || []).filter(function (t) {
+        return now - t < SPAM_GUARD.HOUR_MS;
+      });
+      list.push(now);
+      sessionStorage.setItem(storageKey, JSON.stringify(list));
+    } catch (err) {}
+  }
+
+  function bumpAiDemoAnalyze(storageKey) {
+    try {
+      var now = Date.now();
+      var raw = sessionStorage.getItem(storageKey);
+      var o = raw ? JSON.parse(raw) : null;
+      if (!o || now - o.start > SPAM_GUARD.HOUR_MS) o = { start: now, count: 0 };
+      if (o.count >= SPAM_GUARD.AI_ANALYZE_MAX_PER_HOUR) return false;
+      o.count += 1;
+      sessionStorage.setItem(storageKey, JSON.stringify(o));
+      return true;
+    } catch (err) {
+      return true;
+    }
+  }
+
+  function renderAiDemoQuotaMessage(root, text) {
+    root.innerHTML =
+      '<div class="ai-panel" role="alert"><p style="font-size:15px;color:#1b1464;font-weight:600;margin:0 0 8px">Preview limit reached</p>' +
+      '<p style="font-size:14px;color:#2c3b4e;line-height:1.6;margin:0 0 16px;opacity:0.85">' +
+      escapeHtml(text) +
+      '</p><button type="button" class="btn btn--secondary" data-ai-quota-reset>OK</button></div>';
+    $("[data-ai-quota-reset]", root).addEventListener("click", function () {
+      root.innerHTML = "";
+      root.removeAttribute("data-step");
+      initAiDemo();
+    });
+  }
+
+  function renderMyPathQuotaMessage(root, text) {
+    root.innerHTML =
+      '<div class="ai-panel" role="alert"><p style="font-size:15px;color:#1b1464;font-weight:600;margin:0 0 8px">Preview limit reached</p>' +
+      '<p style="font-size:14px;color:#2c3b4e;line-height:1.6;margin:0 0 16px;opacity:0.85">' +
+      escapeHtml(text) +
+      '</p><button type="button" class="btn btn--secondary" data-mp-quota-reset>OK</button></div>';
+    $("[data-mp-quota-reset]", root).addEventListener("click", function () {
+      root.removeAttribute("data-initialized");
+      initMyPathDemo();
+    });
+  }
+
+  function initOptionalTurnstile() {
+    var meta = document.querySelector('meta[name="priorify-turnstile-site-key"]');
+    if (!meta) return;
+    var key = String(meta.getAttribute("content") || "").trim();
+    if (!key) return;
+    var forms = $all("[data-estimate-form], [data-contact-form]");
+    if (!forms.length) return;
+    function mountWidgets() {
+      if (!window.turnstile || typeof window.turnstile.render !== "function") return;
+      forms.forEach(function (form) {
+        if (form.getAttribute("data-cf-widget-id")) return;
+        var btn = form.querySelector(".contact-form__submit");
+        if (!btn || !btn.parentNode) return;
+        var slot = document.createElement("div");
+        slot.className = "priorify-turnstile-mount";
+        btn.parentNode.insertBefore(slot, btn);
+        var id = window.turnstile.render(slot, { sitekey: key, theme: "light" });
+        if (id != null) form.setAttribute("data-cf-widget-id", String(id));
+      });
+    }
+    if (window.turnstile && window.turnstile.render) {
+      mountWidgets();
+      return;
+    }
+    var sc = document.createElement("script");
+    sc.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    sc.async = true;
+    sc.defer = true;
+    sc.addEventListener("load", function () {
+      window.setTimeout(mountWidgets, 0);
+    });
+    document.head.appendChild(sc);
+  }
+
   function initYear() {
     var el = document.querySelector("[data-year]");
     if (el) el.textContent = String(new Date().getFullYear());
@@ -409,6 +550,13 @@
       initAiDemo();
     });
     $("[data-ai-analyze]", root).addEventListener("click", function () {
+      if (!bumpAiDemoAnalyze("priorify_ai_demo_org_v1")) {
+        renderAiDemoQuotaMessage(
+          root,
+          "Too many preview runs from this browser in the last hour. Try again later, or use Get Priorified for a full conversation."
+        );
+        return;
+      }
       trackAIAssist("demo_analyze");
       root.innerHTML =
         '<div class="ai-demo__loading"><div class="loading-dots"><span></span><span></span><span></span></div>' +
@@ -462,6 +610,13 @@
       initMyPathDemo();
     });
     $("[data-mp-map]", root).addEventListener("click", function () {
+      if (!bumpAiDemoAnalyze("priorify_ai_demo_mp_v1")) {
+        renderMyPathQuotaMessage(
+          root,
+          "Too many preview runs from this browser in the last hour. Try again later, or see pricing for the full MyPriorityPath plan."
+        );
+        return;
+      }
       root.innerHTML =
         '<div class="ai-demo__loading"><div class="loading-dots"><span></span><span></span><span></span></div>' +
         '<p style="color:#2c3b4e;margin-top:18px;font-size:14px;opacity:0.6">Mapping your strategic path...</p></div>';
@@ -579,14 +734,42 @@
   function initContactForm() {
     var form = document.querySelector("[data-contact-form]");
     if (!form) return;
+    initHumanTouchTracking(form);
     form.addEventListener("submit", function (e) {
-      var hp = form.querySelector(".contact-form__hp input");
-      if (hp && String(hp.value).replace(/\s/g, "")) {
-        e.preventDefault();
-        return;
-      }
       e.preventDefault();
       var msg = form.querySelector("[data-form-message]");
+      function fail(text) {
+        if (msg) {
+          msg.hidden = false;
+          msg.textContent = text;
+          msg.className = "form-msg form-msg--err";
+        }
+      }
+      if (honeypotTrip(form)) {
+        return;
+      }
+      var timing = checkFormTiming(form);
+      if (!timing.ok) {
+        fail("Please take a moment to complete the form, then try again.");
+        return;
+      }
+      var quota = readSubmitQuota("priorify_sg_contact");
+      if (!quota.ok) {
+        fail("Too many submissions from this browser recently. Please try again later or email us directly.");
+        return;
+      }
+      var wid = form.getAttribute("data-cf-widget-id");
+      if (wid && window.turnstile && typeof window.turnstile.getResponse === "function") {
+        var tok = window.turnstile.getResponse(wid);
+        if (!tok) {
+          fail("Please complete the verification challenge above.");
+          return;
+        }
+      }
+      recordSubmitQuota("priorify_sg_contact", quota.list);
+      if (wid && window.turnstile && typeof window.turnstile.reset === "function") {
+        window.turnstile.reset(wid);
+      }
       if (msg) {
         msg.hidden = false;
         msg.textContent = "Thanks — wire this form to Formspree, Netlify Forms, or your backend (see README).";
@@ -598,14 +781,42 @@
   function initEstimateForm() {
     var form = document.querySelector("[data-estimate-form]");
     if (!form) return;
+    initHumanTouchTracking(form);
     form.addEventListener("submit", function (e) {
-      var hp = form.querySelector(".contact-form__hp input");
-      if (hp && String(hp.value).replace(/\s/g, "")) {
-        e.preventDefault();
-        return;
-      }
       e.preventDefault();
       var msg = form.querySelector("[data-estimate-form-message]");
+      function fail(text) {
+        if (msg) {
+          msg.hidden = false;
+          msg.textContent = text;
+          msg.className = "form-msg form-msg--err";
+        }
+      }
+      if (honeypotTrip(form)) {
+        return;
+      }
+      var timing = checkFormTiming(form);
+      if (!timing.ok) {
+        fail("Please take a moment to complete the form, then try again.");
+        return;
+      }
+      var quota = readSubmitQuota("priorify_sg_estimate");
+      if (!quota.ok) {
+        fail("Too many submissions from this browser recently. Please try again later or email us directly.");
+        return;
+      }
+      var wid = form.getAttribute("data-cf-widget-id");
+      if (wid && window.turnstile && typeof window.turnstile.getResponse === "function") {
+        var tok = window.turnstile.getResponse(wid);
+        if (!tok) {
+          fail("Please complete the verification challenge above.");
+          return;
+        }
+      }
+      recordSubmitQuota("priorify_sg_estimate", quota.list);
+      if (wid && window.turnstile && typeof window.turnstile.reset === "function") {
+        window.turnstile.reset(wid);
+      }
       if (msg) {
         msg.hidden = false;
         msg.textContent =
@@ -623,6 +834,7 @@
     initMobileNav();
     initRotatingWord();
     initRotatingSentence();
+    initOptionalTurnstile();
     initAiDemo();
     initMyPathDemo();
     initProcessTabs();

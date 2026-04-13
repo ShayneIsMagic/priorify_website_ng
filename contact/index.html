@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Optional: set content to your Cloudflare Turnstile site key to show verification on both forms. Secret key stays on the server. -->
+    <meta name="priorify-turnstile-site-key" content="" />
     <script>
       window.dataLayer = window.dataLayer || [];
     </script>
@@ -150,6 +152,10 @@
                 <label for="est-hp-website">Company website</label>
                 <input id="est-hp-website" name="company_website" type="text" tabindex="-1" autocomplete="off" />
               </div>
+              <div class="contact-form__hp" aria-hidden="true">
+                <label for="est-hp-fax">Business fax</label>
+                <input id="est-hp-fax" name="hp_business_fax" type="text" tabindex="-1" autocomplete="off" />
+              </div>
 
               <div class="contact-form__field contact-form__field--split">
                 <div>
@@ -283,6 +289,10 @@
               <div class="contact-form__hp" aria-hidden="true">
                 <label for="contact-hp-website">Company website</label>
                 <input id="contact-hp-website" name="company_website" type="text" tabindex="-1" autocomplete="off" />
+              </div>
+              <div class="contact-form__hp" aria-hidden="true">
+                <label for="contact-hp-fax">Business fax</label>
+                <input id="contact-hp-fax" name="hp_business_fax" type="text" tabindex="-1" autocomplete="off" />
               </div>
               <div class="contact-form__field">
                 <label for="contact-name">Your Name</label>
