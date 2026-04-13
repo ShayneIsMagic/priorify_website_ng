@@ -391,8 +391,8 @@ h3 {
   isolation: isolate;
 }
 
-/* Landscape band — replace assets/images/mountain-background-2.png to match brand art (e.g. export from Slack). */
-.hero::before {
+/* Landscape band — only on heroes with .hero--landscape (home + MyPriorityPath). Other pages keep the original flat gradient. */
+.hero.hero--landscape::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -400,7 +400,7 @@ h3 {
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center bottom;
-  opacity: 0.4;
+  opacity: 0.52;
   pointer-events: none;
   z-index: 0;
 }
@@ -881,7 +881,7 @@ h3 {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Trusted — name grid (replace with logo images when brand approves) */
+/* Trusted — logo row. Boeing, NASA, GE, 3M: Simple Icons (CC0). Microsoft: classic four-square mark. ExxonMobil, Mayo Clinic, U.S. Army: typographic placeholders — swap for official media-kit SVGs when legal approves. Trademarks belong to each organization. */
 .trusted {
   margin-top: 64px;
   padding-top: 36px;
@@ -931,20 +931,14 @@ h3 {
   margin: 0;
 }
 
-.trusted__name {
+.trusted__logo-tile {
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 56px;
+  min-height: 64px;
   height: 100%;
-  padding: 12px 10px;
-  font-size: clamp(14px, 1.85vw, 16px);
-  font-weight: 700;
-  font-family: var(--font-heading);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  color: var(--color-navy);
+  padding: 14px 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
   border: 1px solid rgba(27, 20, 100, 0.12);
   border-radius: 14px;
@@ -952,8 +946,17 @@ h3 {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.trusted__logo-tile img {
+  max-width: 100%;
+  max-height: 38px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
 @media (hover: hover) and (pointer: fine) {
-  .trusted__logos li:hover .trusted__name {
+  .trusted__logos li:hover .trusted__logo-tile {
     border-color: rgba(59, 130, 246, 0.35);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
   }
@@ -1531,9 +1534,9 @@ h3 {
 
 @media (min-width: 768px) {
   .process-detail--split {
-    grid-template-columns: minmax(200px, 240px) 1fr;
+    grid-template-columns: minmax(260px, 400px) 1fr;
     gap: 40px;
-    align-items: center;
+    align-items: start;
   }
 }
 
@@ -1549,7 +1552,7 @@ h3 {
   text-align: center;
 }
 
-.process-detail__figure img[src*="process-step"] {
+.process-detail__figure:not(.process-detail__figure--app) img[src*="process-step"] {
   width: 100%;
   max-width: 200px;
   height: auto;
@@ -1557,6 +1560,42 @@ h3 {
   object-fit: contain;
   display: block;
   margin: 0 auto;
+}
+
+.process-detail__figure--app {
+  position: relative;
+  padding: 18px 16px 20px;
+  text-align: center;
+}
+
+.process-detail__figure--app .process-detail__app-shot {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  border-radius: 14px;
+  display: block;
+  margin: 0 auto;
+  box-shadow: 0 10px 36px rgba(27, 20, 100, 0.12);
+  border: 1px solid rgba(27, 20, 100, 0.08);
+}
+
+.process-detail__figure--app .process-detail__step-icon {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 52px;
+  height: 52px;
+  padding: 8px;
+  background: var(--color-white);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  object-fit: contain;
+}
+
+@media (min-width: 768px) {
+  .process-detail__figure--app .process-detail__app-shot {
+    max-width: 100%;
+  }
 }
 
 .process-detail__meta {
